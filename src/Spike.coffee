@@ -24,6 +24,9 @@ if (!Array.prototype.indexOf)
     return -1;
   };
 }
+if(typeof JSON === "undefined"){
+  document.write('\x3Cscript type="text/javascript" src="../lib/json2.js">\x3C/script>');
+}
 `
 
 class Spike  
