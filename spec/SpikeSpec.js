@@ -47,7 +47,7 @@ describe("Spike", function() {
   it("should serialize objects with prototypes exported to the window", function(){
     window.BasicClass = BasicClass;
     this.after(function(){
-      delete window.BasicClass;
+      window.BasicClass = null;
     });
     var instance = new BasicClass;
     instance.baz = 2;
@@ -62,8 +62,8 @@ describe("Spike", function() {
     window.BasicClass = BasicClass;
     window.BasicSubclass = BasicSubclass;
     this.after(function(){
-      delete window.BasicClass;
-      delete window.BasicSubclass;
+      window.BasicClass = null;
+      window.BasicSubclass = null;
     });
         
     var instance = new BasicSubclass;
@@ -91,8 +91,8 @@ describe("Spike", function() {
     window.ObjRefClass = ObjRefClass;
     window.BasicClass = BasicClass;
     this.after(function(){
-      delete window.ObjRefClass;
-      delete window.BasicClass;
+      window.ObjRefClass = null;
+      window.BasicClass = null;
     });
     
     var instance = new ObjRefClass;
@@ -110,7 +110,7 @@ describe("Spike", function() {
       window.BasicClass = BasicClass;
     });
     afterEach(function(){
-      delete window.BasicClass;
+      window.BasicClass = null;
     });
     
     it("should handle multiple references to the same object correctly, in an array", function(){
@@ -145,8 +145,8 @@ describe("Spike", function() {
     window.FirstClass = FirstClass;
     window.SecondClass = SecondClass;
     this.after(function(){
-      delete window.FirstClass;
-      delete window.SecondClass;
+      window.FirstClass = null;
+      window.SecondClass = null;
     });
     
     var instance = new FirstClass();
@@ -237,7 +237,7 @@ describe("Spike", function() {
       var runs = 500;
       window.BasicClass = BasicClass;
       this.after(function(){
-        delete window.BasicClass;
+        window.BasicClass = null;
       });
       var pre_results = stringifySampleSet(1);
       var results = parseSampleSet(runs, pre_results.string);
