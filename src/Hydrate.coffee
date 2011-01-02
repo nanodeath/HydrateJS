@@ -142,7 +142,7 @@ class Hydrate
         else
           obj[k] = v
     else if typeof obj == "object"
-      if obj.__hydrate_cons?
+      if obj.__hydrate_cons? && obj.__hydrate_cons != "Object"
         proto = @resolvePrototype obj.__hydrate_cons
         if proto?
           if Util.supportsProto
@@ -152,8 +152,7 @@ class Hydrate
             tmp.prototype = proto
             t = new tmp
             for k, v of obj
-              if obj.hasOwnProperty k
-                t[k] = v
+              t[k] = v
             obj = t
         else
           @errorHandler new PrototypeNotFoundError(obj, obj.__hydrate_cons)
