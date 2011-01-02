@@ -29,7 +29,7 @@ if(typeof JSON === "undefined"){
 }
 `
 
-class Spike  
+class Hydrate  
   class Util
     @d2h = (d) ->
       d.toString 16
@@ -84,7 +84,7 @@ class Spike
     result
   cleanAfterStringify: ->
     for input in @processed_inputs
-      delete input.__spike_id
+      delete input.__hydrate_id
     true
     
   analyze: (input, name) ->
@@ -100,22 +100,22 @@ class Spike
             output[i] = @analyze v, i
           output
         else
-          if(input.__spike_id)
-            "__spike_ref_#{input.__spike_id}"
+          if(input.__hydrate_id)
+            "__hydrate_ref_#{input.__hydrate_id}"
           else
-            input.__spike_id = Util.d2h(@counter++)
+            input.__hydrate_id = Util.d2h(@counter++)
             @processed_inputs.push input
             # is an object...
             output = new Object
             for k, v of input
               if input.hasOwnProperty k
                 output[k] = @analyze v, k
-            output.__spike_cons = Util.functionName(input.constructor)
+            output.__hydrate_cons = Util.functionName(input.constructor)
             output
             
   setErrorHandler: (@errorHandler) ->
   
-  @_refMatcher = /__spike_ref_(.*)/
+  @_refMatcher = /__hydrate_ref_(.*)/
   
   parse: (input) ->
     @identified_objects = []
@@ -136,14 +136,14 @@ class Spike
     if obj instanceof Array
       for v, k in obj
         v = @fixTree v
-        if typeof v == "string" && m = v.match Spike._refMatcher
+        if typeof v == "string" && m = v.match Hydrate._refMatcher
           k2 = Util.h2d(m[1])
           @references_to_resolve.push([obj, k, k2])
         else
           obj[k] = v
     else if typeof obj == "object"
-      if obj.__spike_cons?
-        proto = @resolvePrototype obj.__spike_cons
+      if obj.__hydrate_cons?
+        proto = @resolvePrototype obj.__hydrate_cons
         if proto?
           if Util.supportsProto
             obj.__proto__ = proto
@@ -156,14 +156,14 @@ class Spike
                 t[k] = v
             obj = t
         else
-          @errorHandler new PrototypeNotFoundError(obj, obj.__spike_cons)
+          @errorHandler new PrototypeNotFoundError(obj, obj.__hydrate_cons)
           
       for k, v of obj
         v = @fixTree v
-        if k == "__spike_id"
+        if k == "__hydrate_id"
           v2 = Util.h2d(v)
           @identified_objects[v2] = obj
-        else if typeof v == "string" && m = v.match Spike._refMatcher
+        else if typeof v == "string" && m = v.match Hydrate._refMatcher
           k2 = Util.h2d(m[1])
           @references_to_resolve.push([obj, k, k2])
         else
@@ -171,7 +171,7 @@ class Spike
     obj
   resolvePrototype: (cons_id) ->
     if @resolvers.length == 0
-      throw new Error("No Spike resolvers found -- you should add one!")
+      throw new Error("No Hydrate resolvers found -- you should add one!")
     for res in @resolvers
       cons = res.resolve(cons_id)
       return cons if cons?
@@ -180,7 +180,7 @@ class Spike
     cleaned.push o
     if typeof o == "object" && !(o instanceof Array)
       for k, v of o
-        if k == "__spike_id" || k == "__spike_cons"
+        if k == "__hydrate_id" || k == "__hydrate_cons"
           delete o[k]
         else if typeof v == "object" && !(o instanceof Array) && cleaned.indexOf(v) < 0
           @clean(v, cleaned)
@@ -203,4 +203,4 @@ class ContextResolver
       return v.prototype if v?
     null
         
-this.Spike = Spike;
+this.Hydrate = Hydrate;

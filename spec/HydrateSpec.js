@@ -1,10 +1,10 @@
-describe("Spike", function() {
-  var spike;
+describe("Hydrate", function() {
+  var hydrate;
   beforeEach(function() {
-    spike = new Spike();
+    hydrate = new Hydrate();
   });
   function extend(subclass, superclass){
-    if(Spike.Util.supportsProto){
+    if(Hydrate.Util.supportsProto){
       subclass.prototype.__proto__ = superclass.prototype
     } else {
       subclass.prototype = new superclass()
@@ -24,23 +24,23 @@ describe("Spike", function() {
 
   it("should serialize primitives", function() {
     var inputs = [3, "foo", ["a", 3, "bar"]]
-    var i = spike.parse(spike.stringify(3))
+    var i = hydrate.parse(hydrate.stringify(3))
     for(var i = 0; i < inputs.length; i++){
       var input = inputs[i];
-      expect(spike.parse(spike.stringify(input))).toEqual(input);
+      expect(hydrate.parse(hydrate.stringify(input))).toEqual(input);
     }
   });
   
   it("should not serialize functions (when called directly)", function(){
     expect(function(){
-      spike.stringify(function(){});
+      hydrate.stringify(function(){});
     }).toThrow();
   });
   
   it("should serialize basic hashes", function(){
     var input = {a: "f", b: 3, 1: 4, c: [1, 2, 3], d: {e: "f", g: 9}};
-    var string = spike.stringify(input);
-    var output = spike.parse(string);
+    var string = hydrate.stringify(input);
+    var output = hydrate.parse(string);
     expect(output).toEqual(input);
   });
   
@@ -51,8 +51,8 @@ describe("Spike", function() {
     });
     var instance = new BasicClass;
     instance.baz = 2;
-    var string = spike.stringify(instance);
-    var output = spike.parse(string);
+    var string = hydrate.stringify(instance);
+    var output = hydrate.parse(string);
     expect(output.foo).toEqual("bar");
     expect(output.baz).toEqual(2);
     expect(output).toSubclass(BasicClass);
@@ -73,9 +73,9 @@ describe("Spike", function() {
     instance.newMethod = function(){ };
     
     // normally it'd throw an exception, but we're eating it here
-    spike.setErrorHandler(function(){});
-    var string = spike.stringify(instance);
-    var output = spike.parse(string);
+    hydrate.setErrorHandler(function(){});
+    var string = hydrate.stringify(instance);
+    var output = hydrate.parse(string);
     expect(output.foo).toEqual("baz");
     expect(output.a).toEqual(2);
     expect(output.candy()).toEqual("sweet");
@@ -97,8 +97,8 @@ describe("Spike", function() {
     
     var instance = new ObjRefClass;
     
-    var string = spike.stringify(instance);
-    var output = spike.parse(string);
+    var string = hydrate.stringify(instance);
+    var output = hydrate.parse(string);
     
     expect(output).toSubclass(ObjRefClass);
     expect(output.k).toSubclass(BasicClass);
@@ -117,8 +117,8 @@ describe("Spike", function() {
       var a = new BasicClass();
       var input = [a, a];
       
-      var string = spike.stringify(input);
-      var output = spike.parse(string);
+      var string = hydrate.stringify(input);
+      var output = hydrate.parse(string);
       
       expect(output[0]).toBe(output[1]);
       expect(output[0]).toSubclass(BasicClass);
@@ -128,8 +128,8 @@ describe("Spike", function() {
       var a = new BasicClass();
       var input = {one: a, two: a};
       
-      var string = spike.stringify(input);
-      var output = spike.parse(string);
+      var string = hydrate.stringify(input);
+      var output = hydrate.parse(string);
       
       expect(output.one).toBe(output.two);
     });
@@ -152,8 +152,8 @@ describe("Spike", function() {
     var instance = new FirstClass();
     instance.k.j = instance; // here the second class instance is referring to the first class
     
-    var string = spike.stringify(instance);
-    var output = spike.parse(string);
+    var string = hydrate.stringify(instance);
+    var output = hydrate.parse(string);
     
     expect(output).toSubclass(FirstClass);
     expect(output.k).toSubclass(SecondClass);
@@ -195,10 +195,10 @@ describe("Spike", function() {
   function stringifySampleSet(runs){
     var testSet = generateSampleSet();
     var time = new Date();
-    var primer = spike.stringify(testSet);
+    var primer = hydrate.stringify(testSet);
     var str = primer;
     for(var i = 1; i < runs; i++){
-      str = spike.stringify(testSet);
+      str = hydrate.stringify(testSet);
     }
     var total_time = new Date() - time;
     return {
@@ -209,10 +209,10 @@ describe("Spike", function() {
   }
   function parseSampleSet(runs, str){
     var time = new Date();
-    var primer = spike.parse(str);
+    var primer = hydrate.parse(str);
     var obj = primer;
     for(var i = 1; i < runs; i++){
-      obj = spike.parse(str);
+      obj = hydrate.parse(str);
     }
     var total_time = new Date() - time;
     return {
