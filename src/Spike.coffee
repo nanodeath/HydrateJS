@@ -33,11 +33,11 @@ class Spike
       throw e
     @serialize_key = "_freeze"
     @unserialize_key = "_thaw"
-    @processed_inputs = []
-    @processed_outputs = []
     
   stringify: (input) ->
-    switch typeof input
+    @processed_inputs = []
+    @counter = 0
+    result = switch typeof input
       when "number", "string" then JSON.stringify(input)
       when "function" then throw new Error("can't serialize functions")
       else
@@ -49,6 +49,13 @@ class Spike
         else
           # is an object...
           JSON.stringify @analyze input
+    @cleanAfterStringify()
+    result
+  cleanAfterStringify: ->
+    for input in @processed_inputs
+      delete input.__spike_id
+    true
+    
   analyze: (input, name) ->
     switch typeof input
       when "number", "string" then input
@@ -62,65 +69,72 @@ class Spike
             output[i] = @analyze v, i
           output
         else
-          idx = @processed_inputs.indexOf(input)
-          if idx < 0
+          if(input.__spike_id)
+            "__spike_ref_#{input.__spike_id}"
+          else
+            input.__spike_id = Util.d2h(@counter++)
             @processed_inputs.push input
-            input[@serialize_key]() if typeof input[@serialize_key] == "function"
             # is an object...
             output = new Object
-            @processed_outputs.push output
             for k, v of input
               if input.hasOwnProperty k
                 output[k] = @analyze v, k
-            output._cons = Util.functionName(input.constructor)
+            output.__spike_cons = Util.functionName(input.constructor)
             output
-          else
-            @processed_outputs[idx]["__id"] = Util.d2h(idx)
-            "__ref_#{Util.d2h(idx)}"
             
   setErrorHandler: (@errorHandler) ->
   
+  @_refMatcher = /__spike_ref_(.*)/
+  
   parse: (input) ->
     @identified_objects = []
+    @references_to_resolve = []
     o = JSON.parse(input)
-    o = @fixPrototypes o
+    l = o.length
+    o = @fixTree o
+    for reference in @references_to_resolve
+      [obj, obj_key, ref_id] = reference
+      obj[obj_key] = @identified_objects[ref_id]
     @clean o
     o
-  fixPrototypes: (obj) ->
+  fixTree: (obj) ->
     obj[@unserialize_key]() if typeof obj[@unserialize_key] == "function"
-    if obj._cons?
-      proto = @resolvePrototype obj._cons
-      if proto?
-        if Util.supportsProto
-          obj.__proto__ = proto
-        else
-          #throw new Error("proto not supported")
-          tmp = (->)
-          tmp.prototype = proto
-          t = new tmp
-          for k, v of obj
-            if obj.hasOwnProperty k
-              t[k] = v
-          obj = t
-      else
-        @errorHandler new PrototypeNotFoundError(obj, obj._cons)
+    
+    # TODO reduce duplication between following two branches
+    
     if obj instanceof Array
       for v, k in obj
-        v = @fixPrototypes v
-        if typeof v == "string" && m = v.match /__ref_(.*)/
+        v = @fixTree v
+        if typeof v == "string" && m = v.match Spike._refMatcher
           k2 = Util.h2d(m[1])
-          obj[k] = @identified_objects[k2]
+          @references_to_resolve.push([obj, k, k2])
         else
           obj[k] = v
     else if typeof obj == "object"
+      if obj.__spike_cons?
+        proto = @resolvePrototype obj.__spike_cons
+        if proto?
+          if Util.supportsProto
+            obj.__proto__ = proto
+          else
+            tmp = (->)
+            tmp.prototype = proto
+            t = new tmp
+            for k, v of obj
+              if obj.hasOwnProperty k
+                t[k] = v
+            obj = t
+        else
+          @errorHandler new PrototypeNotFoundError(obj, obj.__spike_cons)
+          
       for k, v of obj
-        v = @fixPrototypes v
-        if k == "__id"
+        v = @fixTree v
+        if k == "__spike_id"
           v2 = Util.h2d(v)
           @identified_objects[v2] = obj
-        if typeof v == "string" && m = v.match /__ref_(.*)/
+        else if typeof v == "string" && m = v.match Spike._refMatcher
           k2 = Util.h2d(m[1])
-          obj[k] = @identified_objects[k2]   
+          @references_to_resolve.push([obj, k, k2])
         else
           obj[k] = v
     obj
@@ -135,7 +149,7 @@ class Spike
     cleaned.push o
     if typeof o == "object" && !(o instanceof Array)
       for k, v of o
-        if k == "__id" || k == "_cons"
+        if k == "__spike_id" || k == "__spike_cons"
           delete o[k]
         else if typeof v == "object" && !(o instanceof Array) && cleaned.indexOf(v) < 0
           @clean(v, cleaned)
