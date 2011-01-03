@@ -110,7 +110,9 @@ class Hydrate
             for k, v of input
               if input.hasOwnProperty k
                 output[k] = @analyze v, k
-            output.__hydrate_cons = Util.functionName(input.constructor)
+            cons = Util.functionName(input.constructor)
+            unless cons == "Object"
+              output.__hydrate_cons = cons
             output
             
   setErrorHandler: (@errorHandler) ->
@@ -142,7 +144,7 @@ class Hydrate
         else
           obj[k] = v
     else if typeof obj == "object"
-      if obj.__hydrate_cons? && obj.__hydrate_cons != "Object"
+      if obj.__hydrate_cons?
         proto = @resolvePrototype obj.__hydrate_cons
         if proto?
           if Util.supportsProto
@@ -190,7 +192,7 @@ class Resolver
   resolve: ->
     throw new Error("abstract")
 
-class ContextResolver
+class ContextResolver extends Resolver
   constructor: (@contexts=[]) ->
     if typeof @contexts != Array
       @contexts = [@contexts]
