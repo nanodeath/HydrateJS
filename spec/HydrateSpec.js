@@ -221,7 +221,7 @@ describe("Hydrate", function() {
       object: obj
     };
   }
-  describe("performance", function(){
+  xdescribe("performance", function(){
     it("should not be terrible when stringifying", function(){
       var runs = 500;
       var results = stringifySampleSet(runs);
@@ -246,6 +246,37 @@ describe("Hydrate", function() {
       var msg = "took " + results.time + "ms total, " + run_time + "ms per run (and " + runs + " runs)";
       if(window.console) console.log(msg);
       else alert(msg);
+    });
+  });
+  
+  describe("backwards-compatibility", function(){
+    it("should allow the user to migrate between versions of a class", function(){
+      migrated = false
+      hydrate.migration(BasicClass, 2, function(){
+        migrated = true
+        var name_parts = this.name.split(" ");
+        this.firstName = name_parts[0];
+        this.lastName = name_parts[1];
+        delete this.name;
+      });
+      
+      function BasicClass(name){ this.name = name; }
+      BasicClass.prototype.getName = function(){ return this.name; };
+      BasicClass.prototype.version = 1;
+          
+      function BasicClassV2(fName, lName){ this.firstName = fName; this.lastName = lName; }
+      BasicClassV2.prototype.getName = function(){ return this.firstName + " " + this.lastName; };
+      BasicClassV2.prototype.version = 2;
+      
+      var obj = new BasicClass("Foo Bar");
+      expect(obj.getName()).toEqual("Foo Bar");
+      var string = hydrate.stringify(obj);
+      console.log(string);
+      window.BasicClass = BasicClassV2;
+      
+      var output = hydrate.parse(string);
+      expect(output.getName()).toEqual("Foo Bar");
+      expect(migrated).toBeTruthy();
     });
   });
 });

@@ -25,7 +25,9 @@ if (!Array.prototype.indexOf)
   };
 }
 if(typeof JSON === "undefined"){
-  document.write('\x3Cscript type="text/javascript" src="../lib/json2.js">\x3C/script>');
+  var dir = "../lib";
+  if(typeof JSON2JSDirectory !== "undefined") dir = JSON2JSDirectory;
+  document.write('\x3Cscript type="text/javascript" src="' + dir + '/json2.js">\x3C/script>');
 }
 `
 
@@ -64,6 +66,7 @@ class Hydrate
       throw e
     @serialize_key = "_freeze"
     @unserialize_key = "_thaw"
+    @migrations = {}
     
   stringify: (input) ->
     @processed_inputs = []
@@ -113,6 +116,11 @@ class Hydrate
             cons = Util.functionName(input.constructor)
             unless cons == "Object"
               output.__hydrate_cons = cons
+              
+            # copy version property to the instance
+            if input.version?
+              output.version = input.version
+              
             output
             
   setErrorHandler: (@errorHandler) ->
@@ -158,7 +166,7 @@ class Hydrate
             obj = t
         else
           @errorHandler new PrototypeNotFoundError(obj, obj.__hydrate_cons)
-          
+      
       for k, v of obj
         v = @fixTree v
         if k == "__hydrate_id"
@@ -178,6 +186,14 @@ class Hydrate
       return cons if cons?
     null
   clean: (o, cleaned=[]) ->
+    # migrate
+    migrations = @migrations[o.__hydrate_cons]
+    if(o.version? && 
+       migrations? && 
+       o.version < migrations.length)
+      for num in [o.version..migrations.length - 1]
+        migrations[num].call(o)
+    
     cleaned.push o
     if typeof o == "object" && !(o instanceof Array)
       for k, v of o
@@ -185,7 +201,24 @@ class Hydrate
           delete o[k]
         else if typeof v == "object" && !(o instanceof Array) && cleaned.indexOf(v) < 0
           @clean(v, cleaned)
-          
+    true
+  
+  migration: (klass, index, callback) ->
+    switch typeof klass
+      when "function"
+        klass = klass.name
+        if klass == ""
+          throw new Error("Could not resolve class name; was empty")
+      when "string"
+        null
+      else
+        throw new Error("invalid class passed in; pass a function or a string")
+    all_versions = @migrations[klass]
+    if !all_versions?
+      all_versions = @migrations[klass] = []
+    all_versions[index-1] = callback
+    #if !@highest_migration[klass]? || @highest_migration[klass] < index
+    #  @highest_migration[klass] = index
     true
 
 class Resolver
