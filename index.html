@@ -121,12 +121,11 @@ Due to the nature of JavaScript, there are some limitations in order to make ser
             Janitor: function(){ ... },
             CEO: function(){ ... }
           };
-          for(var f in Person){ Person[f].name = f; }
-          var resolvers = [];
-          resolvers.push(
-            new Hydrate.ContextResolver(Person, window)
-          );
-          var hydrate = new Hydrate(resolvers);
+          for(var f in Person){ 
+            Person[f].constructor_name = f;
+          }
+          var resolver = new Hydrate.ContextResolver(Person);
+          var hydrate = new Hydrate(resolver);
           ...
           ]]></script>
         </td>
