@@ -14,7 +14,8 @@
 		}
 		#container {
 			margin: 0 auto;
-			width: 700px;
+			min-width: 700px;
+			max-width: 900px;
 		}
 		h1 { font-size: 3.8em; color: #c53302; margin-bottom: 3px; }
 		h1 .small { font-size: 0.4em; }
@@ -27,8 +28,15 @@
 		pre { background: #000; color: #fff; padding: 15px;}
     	hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
     	.footer { text-align:center; padding-top:30px; font-style: italic; }
+    td {
+      vertical-align: top;
+    }
+    html .syntaxhighlighter {
+      overflow: visible !important;
+    }
 	</style>
-	
+	<link href="css/shCore.css" rel="stylesheet" type="text/css" />
+	<link href="css/shThemeDefault.css" rel="stylesheet" type="text/css" />
 </head>
 
 <body>
@@ -58,9 +66,6 @@ Note: designed mainly for browsers, but may have a place with server-side code a
       <li>Lastly, object references -- i.e. two elements in an array that point to the exact same object -- aren't deserialized as one might expect.</li>
     </ol>
     HydrateJS aims to fix all those.
-
-    <h3>TODO</h3>
-Other things native JSON handling couldn't hope to provide that I hope to fill: things like migrations.  After you deserialize something that has been stored away in a database for a month, the class on which it was based may have changed -- json migrations help you deal with that.  It's one of the main features on the TODO list.</p>
 <h2>Dependencies</h2>
 <p>Only json2.js, but this is bundled with HydrateJS and automatically required into the page as needed.</p>
 <h2>Install</h2>
@@ -70,6 +75,135 @@ Other things native JSON handling couldn't hope to provide that I hope to fill: 
 <li>Option 2: HydrateJS is written in CoffeeScript, a new spiffy language that compiles down to JavaScript.  You can get started here: <a href="http://www.coffeescript.com/" target="_blank">http://www.coffeescript.com/</a>. (you'll need to install Node and npm if you haven't already, but that should take no more than 5 minutes).  Then run ./compile.sh.</li>
 </ul>
 </p>
+<h2>Limitations</h2>
+Due to the nature of JavaScript, there are some limitations in order to make serialization work.
+<ul>
+  <li>
+    Can't use anonymous functions as constructors.
+    Reason: to identify the constructor used to build an object, the framework uses the constructor's #name property.  Anonymous functions have a blank name.
+    <table>
+      <tr><th>Bad</th><th>Good</th></tr>
+      <tr>
+        <td>
+          <script type="syntaxhighlighter" class="brush: js"><![CDATA[
+          var Person = function(name){
+            ...
+          };
+          ]]></script>
+        </td>
+        <td>
+          <script type="syntaxhighlighter" class="brush: js"><![CDATA[
+          function Person(name){
+            ...
+          };
+          ]]></script>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <script type="syntaxhighlighter" class="brush: js"><![CDATA[
+          var Person = {
+            Janitor: function(){ ... },
+            CEO: function(){ ... }
+          };
+          ]]></script>
+        </td>
+        <td>
+          <script type="syntaxhighlighter" class="brush: js"><![CDATA[
+          function Janitor(name){
+            ...
+          };
+          function CEO(name){
+            ...
+          };
+          // Alternatively, if you REALLY want namespacing:
+          var Person = {
+            Janitor: function(){ ... },
+            CEO: function(){ ... }
+          };
+          for(var f in Person){ Person[f].name = f; }
+          var resolvers = [];
+          resolvers.push(
+            new Hydrate.ContextResolver(Person, window)
+          );
+          var hydrate = new Hydrate(resolvers);
+          ...
+          ]]></script>
+        </td>
+      </tr>
+    </table>
+  </li>
+  <li>
+    Can't attach functions to instances.  This is part of the general "can't serialize functions" rule, and even if you could, I'm pretty sure it'd cause more problems than solve.  I know this doesn't work well with certain Javascript patterns out there, but since the Person constructor would never get called on the deserialized object, there's no way we could attach #getName to the deserialized instance.  We can't call the constructor on the instance either because a) we don't know what args to pass in, and b) it may have other undesirable side effects.
+    <table>
+      <tr><th>Bad</th><th>Good</th></tr>
+      <tr>
+        <td>
+          <script type="syntaxhighlighter" class="brush: js"><![CDATA[
+            function Person(name){
+              this.getName = function(){
+                return name;
+              };
+            }
+          ]]></script>
+        </td>
+        <td>
+          <script type="syntaxhighlighter" class="brush: js"><![CDATA[
+            function Person(name){
+              this._name = name;
+            }
+            Person.prototype.getName = function(){
+              return this._name;
+            };
+          ]]></script>
+        </td>
+      </tr>
+    </table>
+  </li>
+  <li>
+    Can't write to the "constructor" property of an object.  In order to deserialize an object, we must know what its constructor was (and more importantly, the constructor's prototype object).  The only way to do this is by taking the constructor property from the to-be-serialized object.
+    <table>
+      <tr><th>Bad</th><th>Good</th></tr>
+      <tr>
+        <td>
+          <script type="syntaxhighlighter" class="brush: js"><![CDATA[
+            function Person(){}
+            var bob = new Person();
+            bob.constructor = "something";
+          ]]></script>
+        </td>
+        <td>
+          <script type="syntaxhighlighter" class="brush: js"><![CDATA[
+            function Person(){}
+            var bob = new Person();
+            bob.not_the_constructor = "something";
+          ]]></script>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <script type="syntaxhighlighter" class="brush: js"><![CDATA[
+            // If, for some reason, you thought you had
+            // a good reason to do this, you *could*,
+            // though I wouldn't recommend it.
+            function Person(){}
+            function Dog(){}
+            var bob = new Person();
+            bob.constructor = Dog;
+            // or even bob.constructor = {name: "Dog"};
+            // serialize
+            var hydrate = new Hydrate();
+            var bob_string = hydrate.stringify(bob);
+            // deserialize
+            var bob_the_dog = hydrate.parse(bob_string);
+            // now Bob is a Dog object...weird.
+          ]]></script>
+        </td>
+        <td></td>
+      </tr>
+    </table>
+  </li>
+</ul>
 <h2>License</h2>
 <p>MIT license -- do what you want.</p>
 <h2>Authors</h2>
@@ -95,6 +229,11 @@ Other things native JSON handling couldn't hope to provide that I hope to fill: 
 
   </div>
 
-  
+  <script src="js/shCore.js"></script>
+  <script src="js/shBrushJScript.js"></script>
+  <script>
+    SyntaxHighlighter.defaults.toolbar = false;
+    SyntaxHighlighter.all();
+  </script>
 </body>
 </html>
