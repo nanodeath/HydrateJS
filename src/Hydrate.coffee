@@ -56,27 +56,31 @@ class Hydrate
   
   # If you try to serialize an object you've attached a method to,
   # the serialization won't be complete and may throw this error.
-  class NonPrototypeFunctionError extends Error
+  class Hydrate.NonPrototypeFunctionError extends Error
     constructor: (@object, @name) ->
-    toString: ->
-      "Couldn't serialize object; had non-prototype function '#{@name}'"
+      @message = "Couldn't serialize object; had non-prototype function '#{@name}'"
   # If you try to deserialize an object, but its constructor can't be found,
   # this error may be thrown.
-  class PrototypeNotFoundError extends Error
+  class Hydrate.PrototypeNotFoundError extends Error
     constructor: (@object, @cons_id) ->
-    toString: ->
-      "Prototype not found for object; looked for #{@cons_id}"
+      @message = "Prototype not found for object; looked for #{@cons_id}"
+  class Hydrate.AnonymousConstructorError extends Error
+    constructor: (@object) ->
+      @message = "Couldn't resolve constructor name; seems it has an anonymous constructor and object's prototype has no #constructor_name property to provide hints"
+  class Hydrate.VersionInstancePropertyError extends Error
+    constructor: (@object) ->
+      @message = "Objects can't have versions on the instances; can only be on the prototype"
   
   # Pass in a list of Resolvers that work with deserialization.
   # See Resolvers below for more information.
   # Public.
-  constructor: (@resolvers=[]) ->
-    if @resolvers.length == 0 && typeof window != "undefined"
-      @resolvers.push new ContextResolver(window)      
+  constructor: (@resolver=null) ->
+    if !@resolver?
+      @resolver = new ContextResolver(window)
+    # can be overwritten by #setErrorHandler      
     @errorHandler = (e) ->
       throw e
-    @serialize_key = "_freeze"
-    @unserialize_key = "_thaw"
+
     @migrations = {}
   
   # Serialize an input into a string.  Functions can't be serialized, nor can special objects (like window).
@@ -114,7 +118,7 @@ class Hydrate
       when "number", "string" then input
       when "function"
         # skip, should probably check to see if the function is attached to the prototype
-        @errorHandler new NonPrototypeFunctionError(input, name)
+        @errorHandler new Hydrate.NonPrototypeFunctionError(input, name)
       else
         if input instanceof Array
           output = []
@@ -133,12 +137,16 @@ class Hydrate
               if input.hasOwnProperty k
                 output[k] = @analyze v, k
             cons = Util.functionName(input.constructor)
+            if cons == "" && !input.hasOwnProperty("constructor_name")
+              cons = input.constructor_name
+            if !cons?
+              @errorHandler AnonymousConstructorError(input)
             unless cons == "Object"
               output.__hydrate_cons = cons
               
             # copy version property to the instance
             if input.hasOwnProperty("version")
-              @errorHandler new Error("objects can't have versions on the instances; can only be on the prototype")
+              @errorHandler new Hydrate.VersionInstancePropertyError(input)
             if input.version?
               output.version = input.version
               
@@ -172,8 +180,6 @@ class Hydrate
   # fixing prototypes and resolving references.  Recurses.
   # Public.
   fixTree: (obj) ->
-    obj[@unserialize_key]() if typeof obj[@unserialize_key] == "function"
-    
     # TODO reduce duplication between following two branches
     
     if obj instanceof Array
@@ -185,6 +191,7 @@ class Hydrate
         else
           obj[k] = v
     else if typeof obj == "object"
+      # Object has a constructor; find its prototype and switch our object over to it
       if obj.__hydrate_cons?
         proto = @resolvePrototype obj.__hydrate_cons
         if proto?
@@ -198,7 +205,7 @@ class Hydrate
               t[k] = v
             obj = t
         else
-          @errorHandler new PrototypeNotFoundError(obj, obj.__hydrate_cons)
+          @errorHandler new Hydrate.PrototypeNotFoundError(obj, obj.__hydrate_cons)
       
       for k, v of obj
         v = @fixTree v
@@ -211,16 +218,14 @@ class Hydrate
         else
           obj[k] = v
     obj
+
   # Converts a string representing a constructor to an actual function.  Traverses all
   # resolvers in order looking for one that can accomplish this.
   # Private.
   resolvePrototype: (cons_id) ->
-    if @resolvers.length == 0
-      throw new Error("No Hydrate resolvers found -- you should add one!")
-    for res in @resolvers
-      cons = res.resolve(cons_id)
-      return cons if cons?
-    null
+    if !@resolver?
+      throw new Error("No Hydrate resolver found -- you should specify one in the Hydrate constructor!")
+    @resolver.resolve cons_id
   
   # Clean up the object tree after it's been mostly deserialized.  This is necessary
   # because some properties get added during the serialization process to permit deserialization.
@@ -258,7 +263,7 @@ class Hydrate
       when "function"
         klass = klass.name
         if klass == ""
-          throw new Error("Could not resolve class name; was empty")
+          @errorHandler new AnonymousConstructorError(klass)
       when "string"
         null
       else
@@ -275,21 +280,34 @@ class Hydrate
 # Public.
 class Resolver
   resolve: (cons_id) ->
+    # return null if resolver didn't find anything
     throw new Error("abstract")
 
 # The context resolver is also fairly simple: it takes a list of objects as "contexts", then when a constructor string is provided, it iterates through them in order, looking for the first context that contains that constructor string as a property, and returns the prototype for it.
 # If you want another way to map from constructor names to prototypes, make something similar to ContextResolver and pass it into the main Hydrate constructor.
 # Public.
 class ContextResolver extends Resolver
-  constructor: (@contexts=[]) ->
-    if typeof @contexts != Array
-      @contexts = [@contexts]
-  addContext: (ctx) ->
-    @contexts.push ctx
+  constructor: (@context) ->
   resolve: (cons_id) ->
-    for ctx in @contexts
-      v = ctx[cons_id]
-      return v.prototype if v?
+    v = @context[cons_id]
+    if v?
+      v.prototype
+    else
+      null
+
+# For simplicity's sake one can only pass a single resolver into Hydrate.  If you need more, use the MultiResolver.
+# You can pass any number of resolvers into the MultiResolver constructor, which will be resolved in order.
+class MultiResolver extends Resolver
+  constructor: (@resolvers=[]) ->
+  resolve: (cons_id) ->
+    for res in @resolvers
+      proto = res.resolve(cons_id)
+      return proto if proto?
     null
-        
+
+
+Hydrate.Resolver = Resolver;
+Hydrate.ContextResolver = ContextResolver;
+Hydrate.MultiResolver = MultiResolver;
+
 this.Hydrate = Hydrate;

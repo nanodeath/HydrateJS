@@ -34,7 +34,7 @@ describe("Hydrate", function() {
   it("should not serialize functions (when called directly)", function(){
     expect(function(){
       hydrate.stringify(function(){});
-    }).toThrow();
+    }).toThrow({message: "can't serialize functions"});
   });
   
   it("should serialize basic hashes", function(){
@@ -273,7 +273,6 @@ describe("Hydrate", function() {
       var obj = new BasicClass("Foo Bar");
       expect(obj.getName()).toEqual("Foo Bar");
       var string = hydrate.stringify(obj);
-      console.log(string);
       window.BasicClass = BasicClassV2;
       
       var output = hydrate.parse(string);
@@ -288,7 +287,18 @@ describe("Hydrate", function() {
         this.version = 1;
       }
       var obj = new BasicClass("foo");
-      expect(function(){ hydrate.stringify(obj) }).toThrow();
+      expect(function(){ hydrate.stringify(obj) }).toThrow(new Hydrate.VersionInstancePropertyError());
     });
+  });
+  it("should let you create contexts", function(){
+    var Namespace = {
+      A: function(){}
+    };
+    for(var f in Namespace) Namespace[f].prototype.constructor_name = f;
+    var ctx = new Hydrate.ContextResolver(Namespace);
+    hydrate = new Hydrate(ctx);
+    var a = new Namespace.A();
+    var a_string = hydrate.stringify(a);
+    var new_a = hydrate.parse(a_string);
   });
 });
