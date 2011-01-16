@@ -1,6 +1,6 @@
 HydrateJS
-=======
-Please see [http://nanodeath.github.com/HydrateJS/](this page).
+=========
+Please see [this page](http://nanodeath.github.com/HydrateJS/).
 
 License
 -------
