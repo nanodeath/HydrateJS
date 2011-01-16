@@ -51,18 +51,31 @@
 Note: designed mainly for browsers, but may have a place with server-side code as well.  Untested though.
     </div>
 
-    <p>Native JSON serialization (via JSON.stringify) is convenient, but has a couple critical pitfalls.  For one, if your Javascript object is actually an instance of something other than a hash ({}), this information is lost when serializing -- so a method that may have existed pre-serialization on an object won't exist post-deserialization.  Another problem is circular references -- they simply don't work.  Lastly, object references -- i.e. two elements in an array that point to the exact same object -- aren't deserialized as one might expect.  HydrateJS aims to fix all that.
+    <p>Native JSON serialization (via JSON.stringify) is convenient, but has a couple critical pitfalls:
+    <ol>
+      <li>If your Javascript object is actually an instance of something other than a hash ({}), this information is lost when serializing -- so a method that may have existed pre-serialization on an object won't exist post-deserialization.</li>
+      <li>Another problem is circular references -- they simply don't work (JSON will throw an exception).</li>
+      <li>Lastly, object references -- i.e. two elements in an array that point to the exact same object -- aren't deserialized as one might expect.</li>
+    </ol>
+    HydrateJS aims to fix all those.
 
-Other things native JSON handling couldn't hope to provide that I hope to fill: things like migrations.  After you deserialize something that has been stored away in a database for a month, the class on which it was based may have changed -- json migrations help you deal with that.</p><h2>Dependencies</h2>
+    <h3>TODO</h3>
+Other things native JSON handling couldn't hope to provide that I hope to fill: things like migrations.  After you deserialize something that has been stored away in a database for a month, the class on which it was based may have changed -- json migrations help you deal with that.  It's one of the main features on the TODO list.</p>
+<h2>Dependencies</h2>
 <p>Only json2.js, but this is bundled with HydrateJS and automatically required into the page as needed.</p>
 <h2>Install</h2>
-<p>HydrateJS is written in CoffeeScript, a new spiffy language that compiles down to javaScript.  You can get started here: http://www.coffeescript.com/ (you'll need to install Node and npm if you haven't already, but that should take no more than 5 minutes).  Then run ./compile.sh.  If I can figure out a way to automatically generate the .js so you don't have to, I will.</p>
+<p>
+<ul>
+<li>Option 1: Download pre-compiled JS from <a href="http://blog.maxaller.name/hydrate/gen/Hydrate.js">here</a>.</li>
+<li>Option 2: HydrateJS is written in CoffeeScript, a new spiffy language that compiles down to JavaScript.  You can get started here: <a href="http://www.coffeescript.com/" target="_blank">http://www.coffeescript.com/</a>. (you'll need to install Node and npm if you haven't already, but that should take no more than 5 minutes).  Then run ./compile.sh.</li>
+</ul>
+</p>
 <h2>License</h2>
 <p>MIT license -- do what you want.</p>
 <h2>Authors</h2>
-<p>Max Aller (nanodeath@gmail.com)<br/><br/>      </p>
+<p>Max Aller (nanodeath@gmail.com)</p>
 <h2>Contact</h2>
-<p>Max Aller (nanodeath@gmail.com)<br/>      </p>
+<p>Max Aller (nanodeath@gmail.com)</p>
 
 
     <h2>Download</h2>
