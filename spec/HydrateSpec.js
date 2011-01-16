@@ -260,6 +260,8 @@ describe("Hydrate", function() {
         delete this.name;
       });
       
+      // Note here how we're not adding the version to the object, but rather, to the constructor.
+      // This is critical.  Version numbers will be *deleted* from the instance!
       function BasicClass(name){ this.name = name; }
       BasicClass.prototype.getName = function(){ return this.name; };
       BasicClass.prototype.version = 1;
@@ -277,6 +279,16 @@ describe("Hydrate", function() {
       var output = hydrate.parse(string);
       expect(output.getName()).toEqual("Foo Bar");
       expect(migrated).toBeTruthy();
+      expect(output.version).toEqual(2);
+      expect(output.hasOwnProperty("version")).toBeFalsy();
+    });
+    it("shouldn't permit versioning directly on instances (only prototypes)", function(){
+      function BasicClass(name){
+        this.name = name;
+        this.version = 1;
+      }
+      var obj = new BasicClass("foo");
+      expect(function(){ hydrate.stringify(obj) }).toThrow();
     });
   });
 });
