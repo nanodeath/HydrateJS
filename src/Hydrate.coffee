@@ -107,8 +107,9 @@ class Hydrate
   # Private.
   cleanAfterStringify: ->
     for input in @processed_inputs
-      delete input.__hydrate_id
-      delete input.version
+      if input
+        delete input.__hydrate_id
+        delete input.version
     true
   
   # Do a deeper analysis of a value to convert it to a string (and return a better candidate for serialization).  Recurses.
@@ -119,8 +120,12 @@ class Hydrate
       when "function"
         # skip, should probably check to see if the function is attached to the prototype
         @errorHandler new Hydrate.NonPrototypeFunctionError(input, name)
+      when "undefined"
+        "__hydrate_undef"
       else
-        if input instanceof Array
+        if input == null
+          null
+        else if input instanceof Array
           output = []
           for v, i in input
             output[i] = @analyze v, i
@@ -176,7 +181,7 @@ class Hydrate
     @clean o
     o
   
-  # Fixes the object "tree" resulting from basic object deserialization.  This includes like
+  # Fixes the object "tree" resulting from basic object deserialization.  This includes things like
   # fixing prototypes and resolving references.  Recurses.
   # Public.
   fixTree: (obj) ->
@@ -192,7 +197,7 @@ class Hydrate
           obj[k] = v
     else if typeof obj == "object"
       # Object has a constructor; find its prototype and switch our object over to it
-      if obj.__hydrate_cons?
+      if obj && obj.__hydrate_cons?
         proto = @resolvePrototype obj.__hydrate_cons
         if proto?
           if Util.supportsProto
@@ -212,6 +217,8 @@ class Hydrate
         if k == "__hydrate_id"
           v2 = Util.h2d(v)
           @identified_objects[v2] = obj
+        else if v == "__hydrate_undef"
+          obj[k] = undefined
         else if typeof v == "string" && m = v.match Hydrate._refMatcher
           k2 = Util.h2d(m[1])
           @references_to_resolve.push([obj, k, k2])
@@ -246,7 +253,7 @@ class Hydrate
       for k, v of o
         if k == "__hydrate_id" || k == "__hydrate_cons"
           delete o[k]
-        else if typeof v == "object" && !(o instanceof Array) && cleaned.indexOf(v) < 0
+        else if typeof v == "object" && v && !(o instanceof Array) && cleaned.indexOf(v) < 0
           @clean(v, cleaned)
     true
   

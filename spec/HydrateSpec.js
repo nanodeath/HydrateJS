@@ -84,6 +84,24 @@ describe("Hydrate", function() {
     expect(output).toSubclass(BasicClass);
   });
   
+  it("should serialize hashes containing nulls", function(){
+    var input = {a: null};
+    var string = hydrate.stringify(input);
+    var output = hydrate.parse(string);
+    expect(output).toEqual(input);
+    expect(output.a).toBeNull();
+  });
+  
+  it("should serialize hashes containing undefs", function(){
+    var undefined;
+    var input = {a: undefined};
+    var string = hydrate.stringify(input);
+    var output = hydrate.parse(string);
+    expect(output).toEqual(input);
+    expect(typeof output["a"]).toEqual("undefined");
+    expect("a" in output).toBeTruthy();
+  });
+  
   it("should serialize objects with object references", function(){
     function ObjRefClass(){
       this.k = new BasicClass();
