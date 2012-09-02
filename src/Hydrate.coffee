@@ -173,12 +173,14 @@ class Hydrate
     @identified_objects = []
     @references_to_resolve = []
     o = JSON.parse(input)
-    l = o.length
     o = @fixTree o
-    for reference in @references_to_resolve
-      [obj, obj_key, ref_id] = reference
-      obj[obj_key] = @identified_objects[ref_id]
-    @clean o
+    if o instanceof Array || (o? && typeof o == "object")
+      l = o.length
+      if o?
+        for reference in @references_to_resolve
+          [obj, obj_key, ref_id] = reference
+          obj[obj_key] = @identified_objects[ref_id]
+        @clean o
     o
   
   # Fixes the object "tree" resulting from basic object deserialization.  This includes things like
@@ -190,12 +192,16 @@ class Hydrate
     if obj instanceof Array
       for v, k in obj
         v = @fixTree v
-        if typeof v == "string" && m = v.match Hydrate._refMatcher
+        if v == "__hydrate_undef"
+          obj[k] = undefined;
+        else if typeof v == "string" && m = v.match Hydrate._refMatcher
           k2 = Util.h2d(m[1])
           @references_to_resolve.push([obj, k, k2])
         else
           obj[k] = v
-    else if typeof obj == "object"
+    else if obj == "__hydrate_undef"
+      obj = undefined
+    else if obj? && typeof obj == "object"
       # Object has a constructor; find its prototype and switch our object over to it
       if obj && obj.__hydrate_cons?
         proto = @resolvePrototype obj.__hydrate_cons

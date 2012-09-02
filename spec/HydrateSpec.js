@@ -23,12 +23,12 @@ describe("Hydrate", function() {
   extend(BasicSubclass, BasicClass);
 
   it("should serialize primitives", function() {
-    var inputs = [3, "foo", ["a", 3, "bar"]]
-    var i = hydrate.parse(hydrate.stringify(3))
+    var inputs = [undefined, null, 3, "foo", ["a", 3, "bar"]]
     for(var i = 0; i < inputs.length; i++){
       var input = inputs[i];
       expect(hydrate.parse(hydrate.stringify(input))).toEqual(input);
     }
+    expect(hydrate.parse(hydrate.stringify(inputs))).toEqual(inputs);
   });
   
   it("should not serialize functions (when called directly)", function(){
