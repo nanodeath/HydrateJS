@@ -1,3 +1,5 @@
+var scope = this;
+
 describe("Hydrate", function() {
   var hydrate;
   beforeEach(function() {
@@ -44,10 +46,10 @@ describe("Hydrate", function() {
     expect(output).toEqual(input);
   });
 
-  it("should serialize objects with prototypes exported to the window", function(){
-    window.BasicClass = BasicClass;
+  it("should serialize objects with prototypes exported to the scope", function(){
+    scope.BasicClass = BasicClass;
     this.after(function(){
-      window.BasicClass = null;
+      scope.BasicClass = null;
     });
     var instance = new BasicClass;
     instance.baz = 2;
@@ -59,11 +61,11 @@ describe("Hydrate", function() {
   });
 
   it("should serialize objects with prototype chains", function(){
-    window.BasicClass = BasicClass;
-    window.BasicSubclass = BasicSubclass;
+    scope.BasicClass = BasicClass;
+    scope.BasicSubclass = BasicSubclass;
     this.after(function(){
-      window.BasicClass = null;
-      window.BasicSubclass = null;
+      scope.BasicClass = null;
+      scope.BasicSubclass = null;
     });
 
     var instance = new BasicSubclass;
@@ -106,11 +108,11 @@ describe("Hydrate", function() {
     function ObjRefClass(){
       this.k = new BasicClass();
     }
-    window.ObjRefClass = ObjRefClass;
-    window.BasicClass = BasicClass;
+    scope.ObjRefClass = ObjRefClass;
+    scope.BasicClass = BasicClass;
     this.after(function(){
-      delete window.ObjRefClass;
-      delete window.BasicClass;
+      delete scope.ObjRefClass;
+      delete scope.BasicClass;
     });
 
     var instance = new ObjRefClass;
@@ -126,9 +128,9 @@ describe("Hydrate", function() {
 
   it("should have consistent properties, before and after serialization", function(){
     function Foo() {}
-    window.Foo = Foo;
+    scope.Foo = Foo;
     this.after(function(){
-      delete window.Foo;
+      delete scope.Foo;
     });
     Foo.prototype.toString = function() { return "Foo"; };
 
@@ -143,10 +145,10 @@ describe("Hydrate", function() {
 
   describe("Multiple references to same object", function(){
     beforeEach(function(){
-      window.BasicClass = BasicClass;
+      scope.BasicClass = BasicClass;
     });
     afterEach(function(){
-      window.BasicClass = null;
+      scope.BasicClass = null;
     });
 
     it("should handle multiple references to the same object correctly, in an array", function(){
@@ -178,11 +180,11 @@ describe("Hydrate", function() {
     function SecondClass(){
       this.foo = "bar";
     }
-    window.FirstClass = FirstClass;
-    window.SecondClass = SecondClass;
+    scope.FirstClass = FirstClass;
+    scope.SecondClass = SecondClass;
     this.after(function(){
-      window.FirstClass = null;
-      window.SecondClass = null;
+      scope.FirstClass = null;
+      scope.SecondClass = null;
     });
 
     var instance = new FirstClass();
@@ -264,23 +266,23 @@ describe("Hydrate", function() {
       var run_time = results.time / runs;
 
       var msg = "took " + results.time + "ms total, " + run_time + "ms per run (and " + runs + " runs)";
-      if(window.console) console.log(msg);
+      if(scope.console) console.log(msg);
       else alert(msg);
-      window.result = results;
+      scope.result = results;
     });
 
     it("should not be terrible when parsing", function(){
       var runs = 500;
-      window.BasicClass = BasicClass;
+      scope.BasicClass = BasicClass;
       this.after(function(){
-        window.BasicClass = null;
+        scope.BasicClass = null;
       });
       var pre_results = stringifySampleSet(1);
       var results = parseSampleSet(runs, pre_results.string);
       var run_time = results.time / runs;
 
       var msg = "took " + results.time + "ms total, " + run_time + "ms per run (and " + runs + " runs)";
-      if(window.console) console.log(msg);
+      if(scope.console) console.log(msg);
       else alert(msg);
     });
   });
@@ -309,7 +311,7 @@ describe("Hydrate", function() {
       var obj = new BasicClass("Foo Bar");
       expect(obj.getName()).toEqual("Foo Bar");
       var string = hydrate.stringify(obj);
-      window.BasicClass = BasicClassV2;
+      scope.BasicClass = BasicClassV2;
 
       var output = hydrate.parse(string);
       expect(output.getName()).toEqual("Foo Bar");

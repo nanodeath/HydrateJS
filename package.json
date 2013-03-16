@@ -1,0 +1,36 @@
+{
+  "name": "hydratejs",
+  "version": "1.0.0",
+  "author": "Max Aller <nanodeath@gmail.com>",
+  "description": "a simple zero-configuration command-line http server",
+  "contributors": [
+    {
+      "name": "Marak Squires",
+      "email": "marak@nodejitsu.com"
+    }
+  ],
+  "main": "./src/Hydrate",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nanodeath/HydrateJS.git"
+  },
+  "keywords": [
+    "serialization"
+  ],
+  "dependencies" : {
+    "coffee-script"   :  "1.6.x"
+  },
+  "devDependencies": {
+    "jasmine-node"    :  "1.4.x"
+  },
+  "ignore": {
+    "bundledDependencies": [
+      "union",
+      "ecstatic"
+    ]
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=0.6"
+  }
+}

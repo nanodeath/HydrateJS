@@ -1,3 +1,5 @@
+scope = this
+
 ((definition) ->
   # This file will function properly as a <script> tag, or a module
   # using CommonJS and NodeJS or RequireJS module formats.  In
@@ -25,7 +27,7 @@
 
   # <script>
   else
-    window.Hydrate = definition();
+    scope.Hydrate = definition();
 
 )(->
   Util =
@@ -70,7 +72,7 @@
     # Public.
     constructor: (@resolver=null) ->
       if !@resolver?
-        @resolver = new ContextResolver(window)
+        @resolver = new ContextResolver(scope)
       # can be overwritten by #setErrorHandler
       @errorHandler = (e) ->
         throw e
