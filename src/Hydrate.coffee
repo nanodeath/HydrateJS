@@ -39,16 +39,14 @@
     # Checks to see if the name property of functions is supportedcomment
     supportsFunctionNames: typeof (->).name == "string"
 
-    # Extract the function name from the given function.
-    # This doesn't work with anonymous functions, for obvious reasons.
-    functionName: (func) ->
-      if Util.supportsFunctionNames
-        # func.name isn't writable, so this is reliable
-        func.name
-      else
-        # for IE
-        func.toString().match(/function ([^(]*)/)?[1]
+  # Extract the function name from the given function.
+  # This doesn't work with anonymous functions, for obvious reasons.
+  Util.functionName = if Util.supportsFunctionNames
+    (func) -> func.name
+  else
+    (func) -> func.toString().match(/function ([^(]*)/)?[1]
 
+  Util.isArray = if Array.isArray then Array.isArray else (arr) -> Object.prototype.toString.call(arr) == "[object Array]"
 
   class Hydrate
     # If you try to serialize an object you've attached a method to,
@@ -88,7 +86,7 @@
         when "number", "string" then JSON.stringify(input)
         when "function" then throw new Error("can't serialize functions")
         else
-          if input instanceof Array
+          if Util.isArray(input)
             arr = []
             arr.push @analyze i for i in input
 
@@ -121,7 +119,7 @@
         else
           if input == null
             null
-          else if input instanceof Array
+          else if Util.isArray(input)
             output = []
             for v, i in input
               output[i] = @analyze v, i
@@ -170,7 +168,7 @@
       @references_to_resolve = []
       o = JSON.parse(input)
       o = @fixTree o
-      if o instanceof Array || (o? && typeof o == "object")
+      if Util.isArray(o) || (o? && typeof o == "object")
         l = o.length
         if o?
           for reference in @references_to_resolve
@@ -185,7 +183,7 @@
     fixTree: (obj) ->
       # TODO reduce duplication between following two branches
 
-      if obj instanceof Array
+      if Util.isArray(obj)
         for v, k in obj
           v = @fixTree v
           if v == "__hydrate_undef"
@@ -209,23 +207,25 @@
               tmp.prototype = proto
               t = new tmp
               for k, v of obj
-                t[k] = v
+                if obj.hasOwnProperty(k)
+                  t[k] = v
               obj = t
           else
             @errorHandler new Hydrate.PrototypeNotFoundError(obj, obj.__hydrate_cons)
 
         for k, v of obj
-          v = @fixTree v
-          if k == "__hydrate_id"
-            v2 = Util.h2d(v)
-            @identified_objects[v2] = obj
-          else if v == "__hydrate_undef"
-            obj[k] = undefined
-          else if typeof v == "string" && m = v.match Hydrate._refMatcher
-            k2 = Util.h2d(m[1])
-            @references_to_resolve.push([obj, k, k2])
-          else
-            obj[k] = v
+          if obj.hasOwnProperty(k)
+            v = @fixTree v
+            if k == "__hydrate_id"
+              v2 = Util.h2d(v)
+              @identified_objects[v2] = obj
+            else if v == "__hydrate_undef"
+              obj[k] = undefined
+            else if typeof v == "string" && m = v.match Hydrate._refMatcher
+              k2 = Util.h2d(m[1])
+              @references_to_resolve.push([obj, k, k2])
+            else
+              obj[k] = v
       obj
 
     # Converts a string representing a constructor to an actual function.  Traverses all
@@ -251,11 +251,11 @@
         delete o.version
 
       cleaned.push o
-      if typeof o == "object" && !(o instanceof Array)
+      if typeof o == "object" && !Util.isArray(o)
         for k, v of o
           if k == "__hydrate_id" || k == "__hydrate_cons"
             delete o[k]
-          else if typeof v == "object" && v && !(o instanceof Array) && cleaned.indexOf(v) < 0
+          else if typeof v == "object" && v && !Util.isArray(o) && cleaned.indexOf(v) < 0
             @clean(v, cleaned)
       true
 

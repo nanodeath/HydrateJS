@@ -11,12 +11,12 @@ describe("Hydrate", function() {
       subclass.prototype.constructor = subclass
     }
   }
-  
+
   function BasicClass(){
     this.foo = "bar";
   }
   BasicClass.prototype.candy = function(){ return "sweet"; };
-  
+
   function BasicSubclass(){
     this.foo = "baz";
   }
@@ -30,20 +30,20 @@ describe("Hydrate", function() {
     }
     expect(hydrate.parse(hydrate.stringify(inputs))).toEqual(inputs);
   });
-  
+
   it("should not serialize functions (when called directly)", function(){
     expect(function(){
       hydrate.stringify(function(){});
     }).toThrow({message: "can't serialize functions"});
   });
-  
+
   it("should serialize basic hashes", function(){
     var input = {a: "f", b: 3, 1: 4, c: [1, 2, 3], d: {e: "f", g: 9}};
     var string = hydrate.stringify(input);
     var output = hydrate.parse(string);
     expect(output).toEqual(input);
   });
-  
+
   it("should serialize objects with prototypes exported to the window", function(){
     window.BasicClass = BasicClass;
     this.after(function(){
@@ -57,7 +57,7 @@ describe("Hydrate", function() {
     expect(output.baz).toEqual(2);
     expect(output).toSubclass(BasicClass);
   });
-  
+
   it("should serialize objects with prototype chains", function(){
     window.BasicClass = BasicClass;
     window.BasicSubclass = BasicSubclass;
@@ -65,13 +65,13 @@ describe("Hydrate", function() {
       window.BasicClass = null;
       window.BasicSubclass = null;
     });
-        
+
     var instance = new BasicSubclass;
     instance.a = 2;
-    
+
     // this doesn't work!  can't add methods onto non-prototypes
     instance.newMethod = function(){ };
-    
+
     // normally it'd throw an exception, but we're eating it here
     hydrate.setErrorHandler(function(){});
     var string = hydrate.stringify(instance);
@@ -83,7 +83,7 @@ describe("Hydrate", function() {
     expect(output).toSubclass(BasicSubclass);
     expect(output).toSubclass(BasicClass);
   });
-  
+
   it("should serialize hashes containing nulls", function(){
     var input = {a: null};
     var string = hydrate.stringify(input);
@@ -91,7 +91,7 @@ describe("Hydrate", function() {
     expect(output).toEqual(input);
     expect(output.a).toBeNull();
   });
-  
+
   it("should serialize hashes containing undefs", function(){
     var undefined;
     var input = {a: undefined};
@@ -101,7 +101,7 @@ describe("Hydrate", function() {
     expect(typeof output["a"]).toEqual("undefined");
     expect("a" in output).toBeTruthy();
   });
-  
+
   it("should serialize objects with object references", function(){
     function ObjRefClass(){
       this.k = new BasicClass();
@@ -109,20 +109,38 @@ describe("Hydrate", function() {
     window.ObjRefClass = ObjRefClass;
     window.BasicClass = BasicClass;
     this.after(function(){
-      window.ObjRefClass = null;
-      window.BasicClass = null;
+      delete window.ObjRefClass;
+      delete window.BasicClass;
     });
-    
+
     var instance = new ObjRefClass;
-    
+
     var string = hydrate.stringify(instance);
     var output = hydrate.parse(string);
-    
+
     expect(output).toSubclass(ObjRefClass);
     expect(output.k).toSubclass(BasicClass);
     expect(output.k.foo).toEqual("bar");
   });
-  
+
+
+  it("should have consistent properties, before and after serialization", function(){
+    function Foo() {}
+    window.Foo = Foo;
+    this.after(function(){
+      delete window.Foo;
+    });
+    Foo.prototype.toString = function() { return "Foo"; };
+
+    foo = new Foo();
+    expect(foo.hasOwnProperty('toString')).toBeFalsy();
+
+    var hydrate = new Hydrate();
+    foo = hydrate.parse(hydrate.stringify(foo));
+
+    expect(foo.hasOwnProperty('toString')).toBeFalsy();
+  })
+
   describe("Multiple references to same object", function(){
     beforeEach(function(){
       window.BasicClass = BasicClass;
@@ -130,29 +148,29 @@ describe("Hydrate", function() {
     afterEach(function(){
       window.BasicClass = null;
     });
-    
+
     it("should handle multiple references to the same object correctly, in an array", function(){
       var a = new BasicClass();
       var input = [a, a];
-      
+
       var string = hydrate.stringify(input);
       var output = hydrate.parse(string);
-      
+
       expect(output[0]).toBe(output[1]);
       expect(output[0]).toSubclass(BasicClass);
     });
-    
+
     it("should handle multiple references to the same object correctly, in a hash", function(){
       var a = new BasicClass();
       var input = {one: a, two: a};
-      
+
       var string = hydrate.stringify(input);
       var output = hydrate.parse(string);
-      
+
       expect(output.one).toBe(output.two);
     });
   })
-  
+
   it("should handle circular references", function(){
     function FirstClass(){
       this.k = new SecondClass();
@@ -166,20 +184,20 @@ describe("Hydrate", function() {
       window.FirstClass = null;
       window.SecondClass = null;
     });
-    
+
     var instance = new FirstClass();
     instance.k.j = instance; // here the second class instance is referring to the first class
-    
+
     var string = hydrate.stringify(instance);
     var output = hydrate.parse(string);
-    
+
     expect(output).toSubclass(FirstClass);
     expect(output.k).toSubclass(SecondClass);
     expect(output.k.j).toSubclass(FirstClass);
     expect(output.k.j).toBe(output);
     expect(output.k.foo).toEqual("bar");
   });
-  
+
   function generateSampleSet(){
     var arr = [];
     var size = 1000;
@@ -244,13 +262,13 @@ describe("Hydrate", function() {
       var runs = 500;
       var results = stringifySampleSet(runs);
       var run_time = results.time / runs;
-      
+
       var msg = "took " + results.time + "ms total, " + run_time + "ms per run (and " + runs + " runs)";
       if(window.console) console.log(msg);
       else alert(msg);
       window.result = results;
     });
-    
+
     it("should not be terrible when parsing", function(){
       var runs = 500;
       window.BasicClass = BasicClass;
@@ -260,13 +278,13 @@ describe("Hydrate", function() {
       var pre_results = stringifySampleSet(1);
       var results = parseSampleSet(runs, pre_results.string);
       var run_time = results.time / runs;
-      
+
       var msg = "took " + results.time + "ms total, " + run_time + "ms per run (and " + runs + " runs)";
       if(window.console) console.log(msg);
       else alert(msg);
     });
   });
-  
+
   describe("backwards-compatibility", function(){
     it("should allow the user to migrate between versions of a class", function(){
       migrated = false
@@ -277,22 +295,22 @@ describe("Hydrate", function() {
         this.lastName = name_parts[1];
         delete this.name;
       });
-      
+
       // Note here how we're not adding the version to the object, but rather, to the constructor.
       // This is critical.  Version numbers will be *deleted* from the instance!
       function BasicClass(name){ this.name = name; }
       BasicClass.prototype.getName = function(){ return this.name; };
       BasicClass.prototype.version = 1;
-          
+
       function BasicClassV2(fName, lName){ this.firstName = fName; this.lastName = lName; }
       BasicClassV2.prototype.getName = function(){ return this.firstName + " " + this.lastName; };
       BasicClassV2.prototype.version = 2;
-      
+
       var obj = new BasicClass("Foo Bar");
       expect(obj.getName()).toEqual("Foo Bar");
       var string = hydrate.stringify(obj);
       window.BasicClass = BasicClassV2;
-      
+
       var output = hydrate.parse(string);
       expect(output.getName()).toEqual("Foo Bar");
       expect(migrated).toBeTruthy();
