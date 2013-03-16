@@ -110,7 +110,7 @@
     # Private.
     analyze: (input, name) ->
       switch typeof input
-        when "number", "string" then input
+        when "number", "string", "boolean" then input
         when "function"
           # skip, should probably check to see if the function is attached to the prototype
           @errorHandler new Hydrate.NonPrototypeFunctionError(input, name)

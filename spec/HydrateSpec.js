@@ -23,7 +23,7 @@ describe("Hydrate", function() {
   extend(BasicSubclass, BasicClass);
 
   it("should serialize primitives", function() {
-    var inputs = [undefined, null, 3, "foo", ["a", 3, "bar"]]
+    var inputs = [undefined, null, 3, "foo", ["a", 3, "bar"], true, false]
     for(var i = 0; i < inputs.length; i++){
       var input = inputs[i];
       expect(hydrate.parse(hydrate.stringify(input))).toEqual(input);
