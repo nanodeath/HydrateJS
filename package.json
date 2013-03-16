@@ -4,7 +4,7 @@
   "author": "Max Aller <nanodeath@gmail.com>",
   "description": "dehydrate (serialize) and reconstitute your JavaScript objects",
   "scripts": {
-    "test": "cake build && jasmine-node spec/"
+    "test": "cake test:prepare && jasmine-node spec/"
   },
   "main": "./src/hydrate-bootstrap",
   "repository": {
