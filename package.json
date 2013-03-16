@@ -1,15 +1,12 @@
 {
-  "name": "hydratejs",
+  "name": "hydrate",
   "version": "1.0.0",
   "author": "Max Aller <nanodeath@gmail.com>",
-  "description": "a simple zero-configuration command-line http server",
-  "contributors": [
-    {
-      "name": "Marak Squires",
-      "email": "marak@nodejitsu.com"
-    }
-  ],
-  "main": "./src/Hydrate",
+  "description": "dehydrate (serialize) and reconstitute your JavaScript objects",
+  "scripts": {
+    "test": "cake build && jasmine-node spec/"
+  },
+  "main": "./src/hydrate-bootstrap",
   "repository": {
     "type": "git",
     "url": "https://github.com/nanodeath/HydrateJS.git"
@@ -21,7 +18,8 @@
     "coffee-script"   :  "1.6.x"
   },
   "devDependencies": {
-    "jasmine-node"    :  "1.4.x"
+    "jasmine-node"    :  "1.4.x",
+    "q"               :  "0.9.x"
   },
   "ignore": {
     "bundledDependencies": [

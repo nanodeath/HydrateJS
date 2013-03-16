@@ -72,6 +72,8 @@ scope = this
     # Public.
     constructor: (@resolver=null) ->
       if !@resolver?
+        if typeof window == "undefined"
+          throw new Error("A context-resolver is required in non-browser environments")
         @resolver = new ContextResolver(scope)
       # can be overwritten by #setErrorHandler
       @errorHandler = (e) ->
@@ -318,7 +320,6 @@ scope = this
 
   Hydrate.Util = Util;
 
-  Hydrate.Hydrate = Hydrate;
   Hydrate.Resolver = Resolver;
   Hydrate.ContextResolver = ContextResolver;
   Hydrate.MultiResolver = MultiResolver;

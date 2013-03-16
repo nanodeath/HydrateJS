@@ -1,17 +1,48 @@
 fs = require 'fs'
 util = require 'util'
 {exec} = require 'child_process'
+Q = require 'q'
 
 option '-o', '--output [DIR]', 'directory for compiled code'
 
+get_browser = ->
+  d = Q.defer()
+  browsers = ["sensible-browser", "xdg-open", "x-www-browser"]
+  browsers_q = browsers.map (browser) -> Q.nfcall(exec, "which #{browser}")
+  Q.allResolved(browsers_q).then (promises) ->
+    for promise in promises
+      if promise.isFulfilled()
+        browser = promise.valueOf()[0].replace(/\n$/, '')
+        d.resolve(browser)
+        return
+    d.reject()
+  d.promise
+
+compile_library = (options) ->
+  dir = options.output or 'gen'
+  d = Q.nfcall(exec, "coffee -o #{dir}/ -c src/")
+  d.then (stdout, stderr) ->
+    util.log "Compiled HydrateJS into #{dir}/"
+  .fail util.log
+  d
+
 task 'build', 'build the main asset', (options) ->
-  dir  = options.output or 'gen'
-  exec "coffee -o #{dir}/ -c src/", (err, stdout, stderr) ->
-    util.log err if err
-    message = "Compiled HydrateJS into #{dir}/"
-    util.log message
+  compile_library(options)
+
+task 'build:legacy-browser', 'build the main asset with legacy browser support', ->
+  util.error("This task isn't implemented yet.  For now, define Array.prototype.indexOf and JSON.* methods manually")
 
 task 'test', 'execute tests', (options) ->
-  exec "node_modules/jasmine-node/bin/jasmine-node spec --requireJsSetup gen/Hydrate.js", (err, stdout, stderr) ->
-    util.log err if err
-    util.log stdout
+  util.error("Use `npm test` to run unit tests")
+
+task 'test:browser', 'execute tests in the browser', (options) ->
+  compile_library(options).then ->
+    get_browser().then (browser) ->
+      util.log "Executing `#{browser} spec/SpecRunner.html`"
+      Q.nfcall(exec, "#{browser} spec/SpecRunner.html").then (stdout, stderr) ->
+        util.log stdout
+        util.error stderr
+      .fail (err) ->
+        util.err err
+    .fail ->
+      util.err "Couldn't open browser; navigate to spec/SpecRunner.html"

@@ -1,9 +1,13 @@
 var scope = this;
 
+if(typeof require == "function"){
+  Hydrate = require("../src/hydrate-bootstrap.js");
+}
+
 describe("Hydrate", function() {
   var hydrate;
   beforeEach(function() {
-    hydrate = new Hydrate();
+    hydrate = new Hydrate(new Hydrate.ContextResolver(scope));
   });
   function extend(subclass, superclass){
     if(Hydrate.Util.supportsProto){
@@ -137,7 +141,7 @@ describe("Hydrate", function() {
     foo = new Foo();
     expect(foo.hasOwnProperty('toString')).toBeFalsy();
 
-    var hydrate = new Hydrate();
+    var hydrate = new Hydrate(new Hydrate.ContextResolver(scope));
     foo = hydrate.parse(hydrate.stringify(foo));
 
     expect(foo.hasOwnProperty('toString')).toBeFalsy();
