@@ -1,6 +1,6 @@
 {
   "name": "hydrate",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Max Aller <nanodeath@gmail.com>",
   "description": "dehydrate (serialize) and reconstitute your JavaScript objects",
   "scripts": {

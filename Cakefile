@@ -21,8 +21,7 @@ get_browser = ->
 
 compile_library = (options) ->
   dir = options.output or 'gen'
-  watch_flag = if options.watch then " -w" else " "
-  d = Q.nfcall(exec, "coffee -o #{dir}/ -c#{watch_flag} src/")
+  d = Q.nfcall(exec, "coffee -o #{dir}/ -c src/")
   d.then (stdout, stderr) ->
     util.log "Compiled HydrateJS into #{dir}/"
   .fail (error) ->
@@ -30,10 +29,6 @@ compile_library = (options) ->
   d
 
 task 'build', 'build the main asset', (options) ->
-  compile_library(options).fail -> exit 1
-
-task 'build:watch', 'build the main asset in watch mode', (options) ->
-  options.watch = true
   compile_library(options).fail -> exit 1
 
 task 'build:legacy-browser', 'build the main asset with legacy browser support', ->
