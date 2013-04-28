@@ -28,6 +28,15 @@ describe("Hydrate", function() {
   }
   extend(BasicSubclass, BasicClass);
 
+  it("should cleanup hydrate properties", function() {
+    var input = {}
+    var basic = {f:[{a:{}}]}
+    input.objArray = [{}, basic, {}];
+    input.basic = basic;
+    input.objHash = {a: {}, b: basic, c: {}};
+    expect(hydrate.parse(hydrate.stringify(input))).toEqual(input);
+  });
+
   it("should serialize primitives", function() {
     var inputs = [undefined, null, 3, "foo", ["a", 3, "bar"], true, false]
     for(var i = 0; i < inputs.length; i++){
