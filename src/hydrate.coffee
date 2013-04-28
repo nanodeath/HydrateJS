@@ -257,10 +257,10 @@ scope = this
         for num in [o.version..migrations.length - 1]
           migrations[num].call(o)
         delete o.version
-      #do actual clean
+      # do actual clean
       cleaned.push o
       if Util.isArray(o)
-        for i in o by 1 
+        for i in o 
           @clean(i, cleaned)
       else # o is an object
         for k, v of o
