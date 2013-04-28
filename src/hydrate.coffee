@@ -245,6 +245,10 @@ scope = this
     # Also, runs migrations.
     # Private.
     clean: (o, cleaned=[]) ->
+      # if its not an object then there is no cleaning to do
+      if o == null || typeof o != "object" then return true
+      # if we have already cleaned this object then return
+      if !Util.isArray(o) && cleaned.indexOf(o) > -1 then return true
       # migrate
       migrations = @migrations[o.__hydrate_cons]
       if(o.version? &&
@@ -253,15 +257,18 @@ scope = this
         for num in [o.version..migrations.length - 1]
           migrations[num].call(o)
         delete o.version
-
+      #do actual clean
       cleaned.push o
-      if typeof o == "object" && !Util.isArray(o)
+      if Util.isArray(o)
+        for i in o by 1 
+          @clean(i, cleaned)
+      else # o is an object
         for k, v of o
           if k == "__hydrate_id" || k == "__hydrate_cons"
             delete o[k]
-          else if typeof v == "object" && v && !Util.isArray(o) && cleaned.indexOf(v) < 0
+          else
             @clean(v, cleaned)
-      true
+      return true
 
     # Declare a migration for an object -- this will automatically run callbacks
     # on old objects to get them in sync with current Javascript classes.
