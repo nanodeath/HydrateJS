@@ -143,7 +143,7 @@ scope = this
               if cons == "" && !input.hasOwnProperty("constructor_name")
                 cons = input.constructor_name
               if !cons?
-                @errorHandler AnonymousConstructorError(input)
+                @errorHandler new Hydrate.AnonymousConstructorError(input)
               unless cons == "Object"
                 output.__hydrate_cons = cons
 
@@ -283,7 +283,7 @@ scope = this
         when "function"
           klass = klass.name
           if klass == ""
-            @errorHandler new AnonymousConstructorError(klass)
+            @errorHandler new Hydrate.AnonymousConstructorError(klass)
         when "string"
           null
         else
