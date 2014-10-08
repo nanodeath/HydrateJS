@@ -137,7 +137,8 @@ scope = this
               # is an object...
               output = new Object
               for k, v of input
-                if input.hasOwnProperty k
+                # just skip functions to allow some usage scenarious
+                if input.hasOwnProperty(k) && typeof v != "function"
                   output[k] = @analyze v, k
               cons = Util.functionName(input.constructor)
               if cons == "" && !input.hasOwnProperty("constructor_name")
