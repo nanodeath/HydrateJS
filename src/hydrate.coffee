@@ -129,7 +129,7 @@ scope = this
               output[i] = @analyze v, i
             output
           else
-            if(input.__hydrate_id)
+            if(input.hasOwnProperty("__hydrate_id") && input.__hydrate_id)
               "__hydrate_ref_#{input.__hydrate_id}"
             else
               input.__hydrate_id = Util.d2h(@counter++)
