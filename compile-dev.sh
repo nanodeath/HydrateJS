@@ -1,3 +1,3 @@
 #!/bin/bash
 
-coffee -o gen/ -c -w src/
+coffee -o gen/ -c src/
