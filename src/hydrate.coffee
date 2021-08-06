@@ -129,7 +129,7 @@ scope = this
               output[i] = @analyze v, i
             output
           else
-            if(input.__hydrate_id)
+            if(input.hasOwnProperty("__hydrate_id") && input.__hydrate_id)
               "__hydrate_ref_#{input.__hydrate_id}"
             else
               input.__hydrate_id = Util.d2h(@counter++)
@@ -137,7 +137,8 @@ scope = this
               # is an object...
               output = new Object
               for k, v of input
-                if input.hasOwnProperty k
+                # just skip functions to allow some usage scenarious
+                if input.hasOwnProperty(k) && typeof v != "function"
                   output[k] = @analyze v, k
               cons = Util.functionName(input.constructor)
               if cons == "" && !input.hasOwnProperty("constructor_name")
